@@ -3,14 +3,12 @@ import { Theme } from "./theme.slint";
 
 struct Size {
     width: int,
-    height: int
-}
+    height: int}
 
 struct SPiece {
     blocks: [[color]],
     is_I: bool,
-    is_O: bool
-}
+    is_O: bool}
 
 component ShadedBox inherits Rectangle {
     padding: 20px;
@@ -23,18 +21,18 @@ component ShadedBox inherits Rectangle {
 }
 
 component Block inherits Rectangle {
-    in property <color> block_color ;
+    in property <color> block_color;
     in property <length> size;
 
     width: size;
     height: size;
-    background: block-color; 
+    background: block-color;
     border-width: size / 12;
     border-color: block-color.darker(0.3);
     border-radius: size / 4;
 }
 
-export global GameAdapter { 
+export global GameAdapter {
     in property <Size> grid_size;
     in property <[[color]]> grid;
     in property <SPiece> next_piece;
@@ -42,6 +40,11 @@ export global GameAdapter {
     in property <int> score: 0;
     in property <bool> playing: false;
     in property <bool> game_over: false;
+
+    in property <[[color]]> opponent_grid;
+    in property <int> opponent_score: 0;
+
+    in property <bool> is_multiplayer: false;
 
     callback play-pressed();
 }
@@ -53,9 +56,9 @@ component GridBlockDisplay inherits VerticalLayout {
 
     padding: 4px;
     spacing: 2px;
-    for y in grid-size.height : HorizontalLayout {
+    for y in grid-size.height: HorizontalLayout {
         spacing: 2px;
-        for x in grid-size.width : Block {
+        for x in grid-size.width: Block {
             block-color: grid[y][x];
             size: block-size;
         }
@@ -69,9 +72,7 @@ component HUDOverlay inherits Rectangle {
     border-radius: 10px;
     visible: !(background-opacity == 0.0);
 
-    animate background-opacity { 
-        duration: 500ms;
-    }
+    animate background-opacity { duration: 500ms; }
 
     HorizontalLayout {
         alignment: center;
@@ -82,11 +83,9 @@ component HUDOverlay inherits Rectangle {
                 width: 100px;
                 height: 100px;
 
-                opacity:  GameAdapter.playing ? 0 : area.has-hover ? 1 : 0.8;
+                opacity: GameAdapter.playing ? 0 : area.has-hover ? 1 : 0.8;
 
-                animate opacity { 
-                    duration: 500ms;
-                }
+                animate opacity { duration: 500ms; }
 
                 area := TouchArea {
                     width: parent.width;
@@ -106,11 +105,8 @@ export component PieceDisplay inherits HorizontalLayout {
     width: 18px * 5;
     alignment: center;
     padding-top: piece.is-I ? -9px : 4px;
-    GridBlockDisplay { 
-        grid-size: {
-            width: piece.is-I ? 4 : piece.is-O ? 2 : 3, 
-            height: 2
-        };
+    GridBlockDisplay {
+        grid-size: { width: piece.is-I ? 4 : piece.is-O ? 2 : 3, height: 2 };
         block-size: 18px;
         padding: 0px;
 
@@ -129,7 +125,6 @@ export component AppWindow inherits Window {
         }
         Rectangle {
             background: Theme.palette.primary;
-            
             VerticalLayout {
                 padding: 12px;
                 HorizontalLayout { // Top section
@@ -143,12 +138,14 @@ export component AppWindow inherits Window {
                                 color: Theme.palette.text;
                                 letter-spacing: Theme.textStyle.letter-spacing;
                             }
+
                             Text {
                                 text: "HOLD";
                                 color: Theme.palette.text;
                                 letter-spacing: Theme.textStyle.letter-spacing;
                             }
                         }
+
                         HorizontalLayout {
                             alignment: stretch;
                             ShadedBox {
@@ -168,16 +165,18 @@ export component AppWindow inherits Window {
                             }
                         }
                     }
+
                     VerticalLayout {
                         alignment: stretch;
                         spacing: 8px;
                         Text {
-                            text: "SCORE";
+                            text: GameAdapter.is_multiplayer ? "YOUR SCORE" : "SCORE";
                             horizontal-alignment: center;
                             horizontal-stretch: 1;
                             color: Theme.palette.text;
                             letter-spacing: Theme.textStyle.letter-spacing;
                         }
+
                         ShadedBox {
                             vertical-stretch: 2;
                             Text {
@@ -188,22 +187,100 @@ export component AppWindow inherits Window {
                             }
                         }
                     }
+
+                    if GameAdapter.is_multiplayer: VerticalLayout {
+                        spacing: 8px;
+                        Text {
+                            text: "OPPONENT SCORE";
+                            horizontal-alignment: center;
+                            horizontal-stretch: 1;
+                            color: Theme.palette.text;
+                            letter-spacing: Theme.textStyle.letter-spacing;
+                        }
+
+                        ShadedBox {
+                            vertical-stretch: 2;
+                            Text {
+                                text: GameAdapter.opponent_score;
+                                color: Theme.palette.text;
+                                font-size: 24px;
+                                font-weight: 600;
+                            }
+                        }
+                    }
                 }
 
                 spacing: 24px;
 
-                ShadedBox {
-                    GridBlockDisplay {
-                        grid_size <=> GameAdapter.grid_size;
-                        grid <=> GameAdapter.grid;
+                HorizontalLayout {
+                    spacing: GameAdapter.is_multiplayer ? 10px : 0;
+                    ShadedBox {
+                        GridBlockDisplay {
+                            grid_size <=> GameAdapter.grid_size;
+                            grid <=> GameAdapter.grid;
+                        }
                     }
-                    HUDOverlay {
 
+                    if GameAdapter.is_multiplayer: ShadedBox {
+                        GridBlockDisplay {
+                            grid_size <=> GameAdapter.grid_size;
+                            grid <=> GameAdapter.opponent_grid;
+                        }
+
+                        HUDOverlay { }
                     }
                 }
 
-                HorizontalLayout {
+                HorizontalLayout { }
+            }
+        }
+    }
 
+    Rectangle {
+        background: Theme.palette.primary;
+        visible: !GameAdapter.playing;
+        padding-top: 50px;
+        VerticalLayout {
+            spacing: 50px;
+            padding: 20px;
+            alignment: start;
+            Text {
+                text: "Tetris";
+                color: Theme.palette.text;
+                font-size: 36px;
+                font-weight: 600;
+                letter-spacing: Theme.textStyle.letter-spacing;
+            }
+
+            ShadedBox {
+                height: 60px;
+                Text {
+                    text: "Singleplayer Mode";
+                    font-size: 20px;
+                    color: Theme.palette.text;
+                }
+
+                TouchArea {
+                    clicked => {
+                        GameAdapter.is_multiplayer = false;
+                        GameAdapter.play-pressed();
+                    }
+                }
+            }
+
+            ShadedBox {
+                height: 60px;
+                Text {
+                    text: "Multiplayer Mode";
+                    font-size: 20px;
+                    color: Theme.palette.text;
+                }
+
+                TouchArea {
+                    clicked => {
+                        GameAdapter.is_multiplayer = true;
+                        GameAdapter.play-pressed();
+                    }
                 }
             }
         }
