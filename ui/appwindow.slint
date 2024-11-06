@@ -1,4 +1,4 @@
-import { Button, VerticalBox , HorizontalBox, GridBox, ListView} from "std-widgets.slint";
+import { Button, VerticalBox , HorizontalBox, GridBox, ListView, LineEdit} from "std-widgets.slint";
 import { Theme } from "./theme.slint";
 
 struct Size {
@@ -45,55 +45,34 @@ export global GameAdapter {
     in property <int> opponent_score: 0;
 
     in property <bool> is_multiplayer: false;
+    in property <bool> room_owner_show: false;
+    in property <bool> room_guest_show: false;
+    in property <string> ip_address;
 
     callback play-pressed();
+    callback search-opponent(string);
+    callback create-room();
+    callback cancel-listen();
 }
 
-component GridBlockDisplay inherits VerticalLayout {
+component GridBlockDisplay inherits Rectangle {
     in property <Size> grid_size;
     in property <[[color]]> grid;
     in property <length> block_size: 28px;
 
-    padding: 4px;
-    spacing: 2px;
-    for y in grid-size.height: HorizontalLayout {
-        spacing: 2px;
-        for x in grid-size.width: Block {
-            block-color: grid[y][x];
-            size: block-size;
-        }
-    }
-}
+    background: Theme.palette.primary;
 
-component HUDOverlay inherits Rectangle {
-    in-out property <float> background-opacity: GameAdapter.playing ? 0.0 : 0.5;
-
-    background: rgba(100, 100,100, background-opacity);
     border-radius: 10px;
-    visible: !(background-opacity == 0.0);
-
-    animate background-opacity { duration: 500ms; }
-
-    HorizontalLayout {
-        alignment: center;
-        VerticalLayout {
-            alignment: center;
-            Image {
-                source: GameAdapter.game_over ? @image-url("../assets/img/restart.svg") : @image-url("../assets/img/play.svg");
-                width: 100px;
-                height: 100px;
-
-                opacity: GameAdapter.playing ? 0 : area.has-hover ? 1 : 0.8;
-
-                animate opacity { duration: 500ms; }
-
-                area := TouchArea {
-                    width: parent.width;
-                    height: parent.height;
-                    clicked => {
-                        GameAdapter.play-pressed();
-                    }
-                }
+    drop-shadow-blur: 20px;
+    drop-shadow-color: Theme.palette.secondary;
+    VerticalLayout {
+        padding: 4px;
+        spacing: 2px;
+        for y in grid-size.height: HorizontalLayout {
+            spacing: 2px;
+            for x in grid-size.width: Block {
+                block-color: grid[y][x];
+                size: block-size;
             }
         }
     }
@@ -109,12 +88,15 @@ export component PieceDisplay inherits HorizontalLayout {
         grid-size: { width: piece.is-I ? 4 : piece.is-O ? 2 : 3, height: 2 };
         block-size: 18px;
         padding: 0px;
+        background: transparent;
+        drop-shadow-color: transparent;
 
         grid: piece.blocks;
     }
 }
 
 export component AppWindow inherits Window {
+    default-font-size: 20px;
     callback key-pressed(string);
     forward-focus: key-handler;
 
@@ -123,115 +105,97 @@ export component AppWindow inherits Window {
             root.key-pressed(event.text);
             return accept;
         }
-        Rectangle {
-            background: Theme.palette.primary;
-            VerticalLayout {
-                padding: 12px;
-                HorizontalLayout { // Top section
-                    spacing: 24px;
-                    VerticalLayout {
-                        spacing: 8px;
-                        HorizontalLayout {
-                            alignment: space-around;
-                            Text {
-                                text: "NEXT";
-                                color: Theme.palette.text;
-                                letter-spacing: Theme.textStyle.letter-spacing;
-                            }
+    }
 
-                            Text {
-                                text: "HOLD";
-                                color: Theme.palette.text;
-                                letter-spacing: Theme.textStyle.letter-spacing;
-                            }
-                        }
-
-                        HorizontalLayout {
-                            alignment: stretch;
-                            ShadedBox {
-                                height: 60px;
-
-                                HorizontalBox {
-                                    alignment: space-around;
-
-                                    PieceDisplay {
-                                        piece: GameAdapter.next-piece;
-                                    }
-
-                                    PieceDisplay {
-                                        piece: GameAdapter.held-piece;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    VerticalLayout {
-                        alignment: stretch;
-                        spacing: 8px;
-                        Text {
-                            text: GameAdapter.is_multiplayer ? "YOUR SCORE" : "SCORE";
-                            horizontal-alignment: center;
-                            horizontal-stretch: 1;
-                            color: Theme.palette.text;
-                            letter-spacing: Theme.textStyle.letter-spacing;
-                        }
-
-                        ShadedBox {
-                            vertical-stretch: 2;
-                            Text {
-                                text: GameAdapter.score;
-                                color: Theme.palette.text;
-                                font-size: 24px;
-                                font-weight: 600;
-                            }
-                        }
-                    }
-
-                    if GameAdapter.is_multiplayer: VerticalLayout {
-                        spacing: 8px;
-                        Text {
-                            text: "OPPONENT SCORE";
-                            horizontal-alignment: center;
-                            horizontal-stretch: 1;
-                            color: Theme.palette.text;
-                            letter-spacing: Theme.textStyle.letter-spacing;
-                        }
-
-                        ShadedBox {
-                            vertical-stretch: 2;
-                            Text {
-                                text: GameAdapter.opponent_score;
-                                color: Theme.palette.text;
-                                font-size: 24px;
-                                font-weight: 600;
-                            }
-                        }
-                    }
+    background: Theme.palette.primary;
+    VerticalLayout {
+        padding: 12px;
+        spacing: 24px;
+        VerticalLayout {
+            alignment: start;
+            spacing: 8px;
+            HorizontalLayout {
+                alignment: space-around;
+                Text {
+                    text: "NEXT";
+                    color: Theme.palette.text;
+                    letter-spacing: Theme.textStyle.letter-spacing;
                 }
 
+                Text {
+                    text: "HOLD";
+                    color: Theme.palette.text;
+                    letter-spacing: Theme.textStyle.letter-spacing;
+                }
+
+                Text {
+                    text: GameAdapter.is_multiplayer ? "YOUR SCORE" : "SCORE";
+                    horizontal-alignment: center;
+                    horizontal-stretch: 1;
+                    color: Theme.palette.text;
+                    letter-spacing: Theme.textStyle.letter-spacing;
+                }
+
+                if GameAdapter.is_multiplayer: Text {
+                    text: "OPPONENT SCORE";
+                    horizontal-alignment: center;
+                    horizontal-stretch: 1;
+                    color: Theme.palette.text;
+                    letter-spacing: Theme.textStyle.letter-spacing;
+                }
+            }
+
+            HorizontalLayout {
                 spacing: 24px;
-
-                HorizontalLayout {
-                    spacing: GameAdapter.is_multiplayer ? 10px : 0;
-                    ShadedBox {
-                        GridBlockDisplay {
-                            grid_size <=> GameAdapter.grid_size;
-                            grid <=> GameAdapter.grid;
-                        }
-                    }
-
-                    if GameAdapter.is_multiplayer: ShadedBox {
-                        GridBlockDisplay {
-                            grid_size <=> GameAdapter.grid_size;
-                            grid <=> GameAdapter.opponent_grid;
+                ShadedBox {
+                    height: 62px;
+                    padding: 0px;
+                    horizontal-stretch: 1;
+                    HorizontalLayout {
+                        PieceDisplay {
+                            piece: GameAdapter.next-piece;
                         }
 
-                        HUDOverlay { }
+                        PieceDisplay {
+                            piece: GameAdapter.held-piece;
+                        }
                     }
                 }
 
-                HorizontalLayout { }
+                ShadedBox {
+                    padding: 0px;
+                    height: 62px;
+                    Text {
+                        text: GameAdapter.score;
+                        color: Theme.palette.text;
+                        font-size: 24px;
+                        font-weight: 600;
+                    }
+                }
+
+                if GameAdapter.is_multiplayer: ShadedBox {
+                    height: 62px;
+                    Text {
+                        text: GameAdapter.opponent_score;
+                        color: Theme.palette.text;
+                        font-size: 24px;
+                        font-weight: 600;
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: GameAdapter.is_multiplayer ? 10px : 0;
+            GridBlockDisplay {
+                grid_size <=> GameAdapter.grid_size;
+                grid <=> GameAdapter.grid;
+            }
+
+            if GameAdapter.is_multiplayer:
+                GridBlockDisplay {
+                grid_size <=> GameAdapter.grid_size;
+                grid <=> GameAdapter.opponent_grid;
             }
         }
     }
@@ -256,7 +220,7 @@ export component AppWindow inherits Window {
                 height: 60px;
                 Text {
                     text: "Singleplayer Mode";
-                    font-size: 20px;
+                    font-size: 16px;
                     color: Theme.palette.text;
                 }
 
@@ -270,16 +234,114 @@ export component AppWindow inherits Window {
 
             ShadedBox {
                 height: 60px;
+
                 Text {
-                    text: "Multiplayer Mode";
-                    font-size: 20px;
+                    text: "Multiplayer (Room Owner)";
+                    font-size: 16px;
                     color: Theme.palette.text;
                 }
 
                 TouchArea {
                     clicked => {
                         GameAdapter.is_multiplayer = true;
-                        GameAdapter.play-pressed();
+                        GameAdapter.room_owner_show = true;
+                        GameAdapter.create-room();
+                    }
+                }
+            }
+
+            ShadedBox {
+                height: 60px;
+
+                Text {
+                    text: "Multiplayer (Room Guest)";
+                    font-size: 16px;
+                    color: Theme.palette.text;
+                }
+
+                TouchArea {
+                    clicked => {
+                        GameAdapter.is_multiplayer = true;
+                        GameAdapter.room_guest_show = true;
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        background: Theme.palette.primary;
+        visible: GameAdapter.room_owner_show;
+        padding-top: 50px;
+        VerticalLayout {
+            spacing: 50px;
+            padding: 20px;
+            alignment: start;
+            HorizontalLayout {
+                alignment: start;
+                Button {
+                    text: "Back";
+                    clicked => {
+                        GameAdapter.cancel-listen();
+                        GameAdapter.room_owner_show = false;
+                    }
+                }
+            }
+
+            Text {
+                text: "Wait for Guest to Join";
+                color: Theme.palette.text;
+                font-size: 26px;
+                font-weight: 600;
+            }
+
+            Text {
+                text: "Your IP Address: " + GameAdapter.ip_address;
+            }
+        }
+    }
+
+    Rectangle {
+        background: Theme.palette.primary;
+        visible: GameAdapter.room_guest_show;
+        padding-top: 50px;
+        VerticalLayout {
+            spacing: 50px;
+            padding: 20px;
+            alignment: start;
+            HorizontalLayout {
+                alignment: start;
+                Button {
+                    text: "Back";
+                    clicked => {
+                        GameAdapter.room_guest_show = false;
+                    }
+                }
+            }
+
+            Text {
+                text: "Join Room";
+                color: Theme.palette.text;
+                font-size: 36px;
+                font-weight: 600;
+            }
+
+            line-edit := LineEdit {
+                placeholder-text: "Opponent IP Address";
+            }
+
+            ShadedBox {
+                height: 60px;
+
+                Text {
+                    text: "Join";
+                    font-size: 16px;
+                    color: Theme.palette.text;
+                }
+
+                TouchArea {
+                    clicked => {
+                        GameAdapter.search-opponent(line-edit.text);
                     }
                 }
             }

@@ -1,7 +1,6 @@
-use std::{cell::RefCell, rc::Rc, time::Duration};
-
 use game::Game;
 use slint::{SharedString, Timer};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -53,6 +52,7 @@ pub fn main() {
 
     let game_handle = game.clone();
     ui.on_key_pressed(move |key_text: SharedString| {
+        println!("Key pressed: {}", key_text);
         let keycode = key_text.as_str().chars().nth(0).unwrap();
         let mut game = game_handle.borrow_mut();
         game.handle_input(keycode);

@@ -9,14 +9,14 @@ build = "build.rs"
 
 [dependencies]
 rand = "0.8.5"
-slint = "1.0"
+slint = "1.8.0"
 
 [build-dependencies]
-slint-build = "1.0"
+slint-build = "1.8.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2" }
-getrandom = { version = "0.2.2", features = ["js"] }
+getrandom = { version = "0.2.15", features = ["js"] }
 web-sys = { version = "0.3", features = [
     "console",
     "Element",

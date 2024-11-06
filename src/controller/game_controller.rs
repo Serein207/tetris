@@ -63,8 +63,7 @@ fn update_ui(game_grid_adapter: &GameAdapter, game: &Game) {
     });
 
     // Held piece
-    if game.get_held().is_some() {
-        let held = game.get_held().unwrap();
+    if let Some(held) = game.get_held() {
         game_grid_adapter.set_held_piece(SPiece {
             blocks: piece_to_model(&held),
             is_I: held.color == pieces::Color::CYAN,
