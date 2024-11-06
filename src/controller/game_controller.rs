@@ -1,8 +1,12 @@
 use crate::{game::Game, pieces, ui::*};
 use slint::*;
-use std::{cell::RefCell, rc::Rc, time::Duration};
+use std::{
+    rc::Rc,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-pub fn setup(window: &AppWindow, game: Rc<RefCell<Game>>) -> Timer {
+pub fn setup(window: &AppWindow, game: Arc<Mutex<Game>>, opponent_game: Arc<Mutex<Game>>) -> Timer {
     window.global::<GameAdapter>().set_grid_size(Size {
         height: Game::GRID_HEIGHT.into(),
         width: Game::GRID_WIDTH.into(),
@@ -15,15 +19,48 @@ pub fn setup(window: &AppWindow, game: Rc<RefCell<Game>>) -> Timer {
         move || {
             let window = weak_window.unwrap();
             let game_adapter = window.global::<GameAdapter>();
-            if game.borrow().is_game_over() {
+            if game.lock().unwrap().is_game_over() {
                 game_adapter.set_game_over(true);
                 game_adapter.set_playing(false);
             }
-            update_ui(&game_adapter, &game.borrow());
+            update_ui(&game_adapter, &game.lock().unwrap());
+            update_opponent_ui(&game_adapter, &opponent_game.lock().unwrap());
         }
     });
 
     update_timer
+}
+
+fn update_opponent_ui(game_grid_adapter: &GameAdapter, game: &Game) {
+    if !game_grid_adapter.get_playing() {
+        return;
+    };
+    // Grid
+    let grid = game.get_grid();
+    let vec = VecModel::<ModelRc<slint::Color>>::default();
+    for i in 0..Game::GRID_HEIGHT {
+        let row = VecModel::<Color>::default();
+        for j in 0..Game::GRID_WIDTH {
+            row.insert(j.into(), col2col(grid[i as usize][j as usize]));
+        }
+        vec.insert(i.into(), Rc::new(row).clone().into());
+    }
+    // Current piece
+    let current = game.get_current();
+    for cell in current.get_shape() {
+        let x = current.x + cell.0 as i16;
+        let y = current.y + cell.1 as i16;
+
+        let row = vec.row_data(y as usize);
+        if row.is_some() {
+            row.unwrap()
+                .set_row_data(x as usize, col2col(Some(current.piece.color)));
+        }
+    }
+    game_grid_adapter.set_opponent_grid(Rc::new(vec).clone().into());
+
+    // Score
+    game_grid_adapter.set_opponent_score(game.get_score() as i32);
 }
 
 fn update_ui(game_grid_adapter: &GameAdapter, game: &Game) {

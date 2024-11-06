@@ -1,7 +1,7 @@
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-use std::time::*;
+use std::{sync::MutexGuard, time::*};
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
@@ -22,8 +22,11 @@ impl Instant {
     }
 }
 
-use crate::pieces::{Color, PhysicalPiece, Piece, PIECES, PIECE_COUNT};
-use rand::Rng;
+use crate::{
+    network::GameState,
+    pieces::{Color, PhysicalPiece, Piece, PIECES, PIECE_COUNT},
+};
+use rand::{Rng, SeedableRng};
 
 pub struct Game {
     grid: [[Option<Color>; Game::GRID_WIDTH as usize]; Game::GRID_HEIGHT as usize],
@@ -32,7 +35,7 @@ pub struct Game {
     held: Option<Piece>,
     has_held: bool,
     score: u32,
-    rng: rand::rngs::ThreadRng,
+    rng: rand::rngs::StdRng,
     time: Instant,
     game_over: bool,
 }
@@ -47,7 +50,7 @@ impl Game {
     ///
     /// * `Game` - A new game instance.
     pub fn new() -> Game {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rngs::StdRng::from_entropy();
 
         Game {
             grid: [[None; Game::GRID_WIDTH as usize]; Game::GRID_HEIGHT as usize],
@@ -287,6 +290,37 @@ impl Game {
     /// * `bool` - True if the game is over, otherwise false.
     pub fn is_game_over(&self) -> bool {
         self.game_over
+    }
+}
+
+// Implement From and Into traits for Game and GameState
+impl From<MutexGuard<'_, Game>> for GameState {
+    fn from(game: MutexGuard<'_, Game>) -> Self {
+        GameState {
+            grid: game.grid.clone(),
+            current: game.current.clone(),
+            next: game.next.clone(),
+            held: game.held.clone(),
+            has_held: game.has_held,
+            score: game.score,
+            game_over: game.game_over,
+        }
+    }
+}
+
+impl Into<Game> for GameState {
+    fn into(self) -> Game {
+        Game {
+            grid: self.grid,
+            current: self.current,
+            next: self.next,
+            held: self.held,
+            has_held: self.has_held,
+            score: self.score,
+            rng: rand::rngs::StdRng::from_entropy(),
+            time: Instant::now(),
+            game_over: self.game_over,
+        }
     }
 }
 

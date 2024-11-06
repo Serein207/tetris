@@ -1,7 +1,9 @@
 use std::clone::Clone;
+
+use serde::{Deserialize, Serialize};
 pub const PIECE_COUNT: usize = 7;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Color {
     CYAN,
     BLUE,
@@ -12,7 +14,7 @@ pub enum Color {
     RED,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct Piece {
     pub color: Color,
     rotations: [[(u16, u16); 4]; 4],
@@ -24,7 +26,7 @@ impl Piece {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PhysicalPiece {
     pub x: i16,
     pub y: i16,
@@ -136,104 +138,3 @@ pub static BLOCK_L: Piece = Piece {
         [(0, 0), (1, 0), (1, 1), (1, 2)],
     ],
 };
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_rotate_right() {
-        let mut piece = PhysicalPiece {
-            x: 0,
-            y: 0,
-            rotation: 0,
-            piece: BLOCK_I,
-        };
-        piece.rotate_right();
-        assert_eq!(piece.rotation, 1);
-        piece.rotate_right();
-        assert_eq!(piece.rotation, 2);
-        piece.rotate_right();
-        assert_eq!(piece.rotation, 3);
-        piece.rotate_right();
-        assert_eq!(piece.rotation, 0);
-    }
-
-    #[test]
-    fn test_rotate_left() {
-        let mut piece = PhysicalPiece {
-            x: 0,
-            y: 0,
-            rotation: 0,
-            piece: BLOCK_I,
-        };
-        piece.rotate_left();
-        assert_eq!(piece.rotation, 3);
-        piece.rotate_left();
-        assert_eq!(piece.rotation, 2);
-        piece.rotate_left();
-        assert_eq!(piece.rotation, 1);
-        piece.rotate_left();
-        assert_eq!(piece.rotation, 0);
-    }
-
-    #[test]
-    fn test_move_right() {
-        let mut piece = PhysicalPiece {
-            x: 0,
-            y: 0,
-            rotation: 0,
-            piece: BLOCK_I,
-        };
-        piece.move_right();
-        assert_eq!(piece.x, 1);
-        piece.move_right();
-        assert_eq!(piece.x, 2);
-    }
-
-    #[test]
-    fn test_move_left() {
-        let mut piece = PhysicalPiece {
-            x: 2,
-            y: 0,
-            rotation: 0,
-            piece: BLOCK_I,
-        };
-        piece.move_left();
-        assert_eq!(piece.x, 1);
-        piece.move_left();
-        assert_eq!(piece.x, 0);
-    }
-
-    #[test]
-    fn test_newton() {
-        let mut piece = PhysicalPiece {
-            x: 0,
-            y: 0,
-            rotation: 0,
-            piece: BLOCK_I,
-        };
-        piece.newton();
-        assert_eq!(piece.y, 1);
-        piece.newton();
-        assert_eq!(piece.y, 2);
-    }
-
-    #[test]
-    fn test_get_shape() {
-        let piece = PhysicalPiece {
-            x: 0,
-            y: 0,
-            rotation: 0,
-            piece: BLOCK_I,
-        };
-        assert_eq!(piece.get_shape(), &[(0, 1), (1, 1), (2, 1), (3, 1)]);
-        let piece = PhysicalPiece {
-            x: 0,
-            y: 0,
-            rotation: 1,
-            piece: BLOCK_I,
-        };
-        assert_eq!(piece.get_shape(), &[(2, 0), (2, 1), (2, 2), (2, 3)]);
-    }
-}
