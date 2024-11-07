@@ -110,3 +110,40 @@ fn col2col(color: Option<pieces::Color>) -> slint::Color {
         None => slint::Color::from_argb_u8(0, 0, 0, 0),
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_col2col() {
+        assert_eq!(
+            col2col(Some(pieces::Color::CYAN)),
+            slint::Color::from_rgb_u8(82, 177, 252)
+        );
+        assert_eq!(
+            col2col(Some(pieces::Color::BLUE)),
+            slint::Color::from_rgb_u8(60, 118, 181)
+        );
+        assert_eq!(
+            col2col(Some(pieces::Color::ORANGE)),
+            slint::Color::from_rgb_u8(255, 92, 27)
+        );
+        assert_eq!(
+            col2col(Some(pieces::Color::YELLOW)),
+            slint::Color::from_rgb_u8(251, 206, 5)
+        );
+        assert_eq!(
+            col2col(Some(pieces::Color::GREEN)),
+            slint::Color::from_rgb_u8(67, 213, 97)
+        );
+        assert_eq!(
+            col2col(Some(pieces::Color::PURPLE)),
+            slint::Color::from_rgb_u8(164, 105, 184)
+        );
+        assert_eq!(
+            col2col(Some(pieces::Color::RED)),
+            slint::Color::from_rgb_u8(255, 1, 39)
+        );
+        assert_eq!(col2col(None), slint::Color::from_argb_u8(0, 0, 0, 0));
+    }
+}
