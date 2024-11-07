@@ -185,7 +185,7 @@ impl Game {
         self.next = *PIECES[self.rng.gen_range(0..PIECE_COUNT)];
     }
 
-    /// Returns true if a collison occured
+    /// Returns true if a collision occurred
     fn move_and_collide(&mut self, func: fn(&mut PhysicalPiece)) -> bool {
         let mut test_piece = self.current.clone();
         func(&mut test_piece);

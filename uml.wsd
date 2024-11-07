@@ -1,0 +1,96 @@
+@startuml diamond
+class Game {
+    -grid: [[Option<Color>; GRID_WIDTH]; GRID_HEIGHT]
+    -current: PhysicalPiece
+    -next: Piece
+    -held: Option<Piece>
+    -has_held: bool
+    -score: u32
+    -rng: rand::rngs::ThreadRng
+    -time: Instant
+    -game_over: bool
+    +new() -> Game
+    +update()
+    +handle_input(keycode: char)
+    +get_grid() -> &[[Option<Color>; GRID_WIDTH]; GRID_HEIGHT]
+    +get_current() -> &PhysicalPiece
+    +get_next() -> &Piece
+    +get_held() -> &Option<Piece>
+    +get_score() -> u32
+    +is_game_over() -> bool
+}
+
+class PhysicalPiece {
+    pub x: i16
+    pub y: i16
+    pub rotation: usize
+    pub piece: Piece
+    +rotate_right()
+    +rotate_left()
+    +move_right()
+    +move_left()
+    +newton()
+    +get_shape() -> &[(u16, u16); 4]
+    +get_piece() -> &Piece
+}
+
+class Piece {
+    pub color: Color
+    rotations: [[(u16, u16); 4]; 4]
+    +get_shape(rotation: usize) -> &[(u16, u16); 4]
+}
+
+enum Color {
+    CYAN
+    BLUE
+    ORANGE
+    YELLOW
+    GREEN
+    PURPLE
+    RED
+}
+
+class GameController {
+    +setup(window: &AppWindow, game: Rc<RefCell<Game>>) -> Timer
+    +update_ui(game_grid_adapter: &GameAdapter, game: &Game)
+}
+
+Game *-- PhysicalPiece
+PhysicalPiece *--  Piece
+Piece *-- Color
+GameController -- Game
+
+@enduml
+
+@startuml function
+!define RECTANGLE class
+
+RECTANGLE Game {
+    +new() -> Game
+    +update()
+    +handle_input(keycode: char)
+    +get_grid() -> &[[Option<Color>; GRID_WIDTH]; GRID_HEIGHT]
+    +get_current() -> &PhysicalPiece
+    +get_next() -> &Piece
+    +get_held() -> &Option<Piece>
+    +get_score() -> u32
+    +is_game_over() -> bool
+}
+
+RECTANGLE GameController {
+    +setup(window: &AppWindow, game: Rc<RefCell<Game>>) -> Timer
+    +update_ui(game_grid_adapter: &GameAdapter, game: &Game)
+}
+
+RECTANGLE UI {
+    +on_play_pressed()
+    +on_key_pressed(key_text: SharedString)
+    +global::<GameAdapter>()
+    +run()
+}
+
+GameController --> Game : controls
+UI --> GameController : interacts with
+UI --> Game : displays state
+
+@enduml
